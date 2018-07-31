@@ -7,7 +7,7 @@ import org.junit.Test
 
 class ConsumerTest {
 
-    @MockK(relaxUnitFun = true)
+    @MockK(relaxUnitFun = true) // In order to avoid the strict check by Mockk, a relaxed mock is required
     lateinit var task: BackgroundTask
 
     lateinit var consumer: Consumer
@@ -25,10 +25,13 @@ class ConsumerTest {
 
     @Test
     fun `test success`() {
-        spyConsumer.doBackgroundTask()
+        // Handle what happens when task.doBackground... is called
+        // Capture callback and trigger it with the necessary data
+        every { task.doBackground(capture(callbackSlot)) } answers {
+            callbackSlot.captured.onDone(true, null)
+        }
 
-        verify { task.doBackground(capture(callbackSlot)) }
-        callbackSlot.captured.onDone(true, null)
+        spyConsumer.doBackgroundTask()
 
         verifyOrder {
             spyConsumer["printStarting"]()
@@ -38,10 +41,11 @@ class ConsumerTest {
 
     @Test
     fun `test failure`() {
-        spyConsumer.doBackgroundTask()
+        every { task.doBackground(capture(callbackSlot)) } answers {
+            callbackSlot.captured.onDone(false, null)
+        }
 
-        verify { task.doBackground(capture(callbackSlot)) }
-        callbackSlot.captured.onDone(false, null)
+        spyConsumer.doBackgroundTask()
 
         verifyOrder {
             spyConsumer["printStarting"]()
